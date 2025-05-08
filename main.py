@@ -25,6 +25,7 @@ DATA_SUBMIT_URL_TEMPLATE = 'https://api-mifit-cn.huami.com/v1/data/band_data.jso
 
 # 北京时区
 BJ_TZ = datetime.timezone(datetime.timedelta(hours=8))
+today_str = datetime.datetime.now(BJ_TZ).strftime('%Y-%m-%d')
 
 
 def parse_args():
@@ -41,13 +42,13 @@ def get_system_timestamp_ms():
 
 
 def generate_step_range():
-    """根据当前小时生成随机步数范围（3小时一档，每档5000步）。"""
+    """根据当前小时生成随机步数范围（3小时一档，每档7000步）。"""
     # 使用北京时间
     hour = datetime.datetime.now(BJ_TZ).hour
     min_ratio = max(math.ceil((hour / 3) - 1), 0)
     max_ratio = math.ceil(hour / 3)
-    min_steps = 5000 * min_ratio
-    max_steps = 5000 * max_ratio
+    min_steps = 7000 * min_ratio
+    max_steps = 7000 * max_ratio
     return min_steps, max_steps
 
 
@@ -113,11 +114,20 @@ def submit_steps(login_token, user_id, step):
     timestamp = get_system_timestamp_ms()
     with open('upload_json.txt', 'r', encoding='utf-8') as f:
         data_json = f.read()
-
+        
+    finddate = re.compile(r".*?date%22%3A%22(.*?)%22%2C%22data.*?")
+    findstep = re.compile(r".*?ttl%5C%22%3A(.*?)%2C%5C%22dis.*?")
+    data_json = re.sub(finddate.findall(data_json)[0], today_str, data_json)
+    data_json = re.sub(findstep.findall(data_json)[0], str(step), data_json)
+    
     url = DATA_SUBMIT_URL_TEMPLATE.format(timestamp=timestamp)
     headers = {'apptoken': get_app_token(login_token), 'Content-Type': 'application/x-www-form-urlencoded'}
     payload = f'userid={user_id}&last_sync_data_time=1597306380&device_type=0&last_deviceid=DA932FFFFE8816E7&data_json={data_json}'
+    print(f"[DEBUG] 正在提交步数: user_id={user_id}, step={step}")
+    print(f"[DEBUG] 提交URL: {url}")
+    print(f"[DEBUG] Payload: {payload[:200]}... (截断)")
     resp = requests.post(url, data=payload, headers=headers).json()
+    print(f"[DEBUG] 响应内容: {resp}")
     return resp.get('message', '')
 
 
