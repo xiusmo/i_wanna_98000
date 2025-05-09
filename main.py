@@ -8,6 +8,7 @@ import random
 import re
 import sys
 import time
+import os
 
 import requests
 
@@ -25,10 +26,9 @@ DATA_SUBMIT_URL_TEMPLATE = 'https://api-mifit-cn.huami.com/v1/data/band_data.jso
 
 # 北京时区
 BJ_TZ = datetime.timezone(datetime.timedelta(hours=8))
-# 最大日步数（基于 3h 档位 5000*8）
-MAX_DAILY_STEPS = 60000
-# 步数浮动比例（±5%）
-VARIATION_RATIO = 0.05
+# 从环境变量读取每日最大基础步数和浮动比例
+MAX_DAILY_STEPS = int(os.getenv('MAX_DAILY_STEPS', '60000'))
+VARIATION_RATIO = float(os.getenv('VARIATION_RATIO', '0.05'))
 today_str = datetime.datetime.now(BJ_TZ).strftime('%Y-%m-%d')
 
 

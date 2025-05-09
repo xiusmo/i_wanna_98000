@@ -30,5 +30,7 @@ jobs:
         env:
           USERS: ${{ secrets.USERS }}
           PASSWORDS: ${{ secrets.PASSWORDS }}
+          MAX_DAILY_STEPS: ${{ vars.MAX_DAILY_STEPS }}
+          VARIATION_RATIO: ${{ vars.VARIATION_RATIO }}
         run: |
           python main.py "$USERS" "$PASSWORDS" 

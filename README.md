@@ -38,6 +38,9 @@
 1. 在仓库设置中创建 Secrets：
    - `USERS`：用户名列表，用 `#` 分隔
    - `PASSWORDS`：对应密码列表，用 `#` 分隔
+2. 在仓库设置 → Variables 中创建以下变量（可选，未设置时使用默认值）：
+   - `MAX_DAILY_STEPS`：每日基础最大步数（默认60000）
+   - `VARIATION_RATIO`：步数浮动比例（默认0.05）
 2. 工作流文件在 `.github/workflows/submit_steps.yml`，已配置为北京时间 **8:00、10:00、12:00**（对应 UTC `0:00`、`2:00`、`4:00`）定时执行。
 3. 手动触发或定时执行时，会自动安装依赖并运行脚本：
    ```yaml
@@ -45,6 +48,8 @@
      env:
        USERS: ${{ secrets.USERS }}
        PASSWORDS: ${{ secrets.PASSWORDS }}
+       MAX_DAILY_STEPS: ${{ vars.MAX_DAILY_STEPS }}
+       VARIATION_RATIO: ${{ vars.VARIATION_RATIO }}
      run: python main.py "$USERS" "$PASSWORDS"
    ```
 
