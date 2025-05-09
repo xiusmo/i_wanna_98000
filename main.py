@@ -25,6 +25,10 @@ DATA_SUBMIT_URL_TEMPLATE = 'https://api-mifit-cn.huami.com/v1/data/band_data.jso
 
 # 北京时区
 BJ_TZ = datetime.timezone(datetime.timedelta(hours=8))
+# 最大日步数（基于 3h 档位 5000*8）
+MAX_DAILY_STEPS = 60000
+# 步数浮动比例（±5%）
+VARIATION_RATIO = 0.05
 today_str = datetime.datetime.now(BJ_TZ).strftime('%Y-%m-%d')
 
 
@@ -42,14 +46,17 @@ def get_system_timestamp_ms():
 
 
 def generate_step_range():
-    """根据当前小时生成随机步数范围（3小时一档，每档7000步）。"""
-    # 使用北京时间
-    hour = datetime.datetime.now(BJ_TZ).hour
-    min_ratio = max(math.ceil((hour / 3) - 1), 0)
-    max_ratio = math.ceil(hour / 3)
-    min_steps = 7000 * min_ratio
-    max_steps = 7000 * max_ratio
-    return min_steps, max_steps
+    """根据当前分钟生成基础步数并给出小范围浮动区间。"""
+    # 当前北京时间分钟数
+    now = datetime.datetime.now(BJ_TZ)
+    minute_of_day = now.hour * 60 + now.minute
+    # 计算基础步数，随着时间线性增加
+    base = int(MAX_DAILY_STEPS * minute_of_day / (24 * 60))
+    # 小范围浮动
+    variation = int(base * VARIATION_RATIO)
+    low = max(base - variation, 0)
+    high = base + variation
+    return low, high
 
 
 def extract_access_code(location_url):
