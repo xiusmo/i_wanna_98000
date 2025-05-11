@@ -11,6 +11,8 @@ import time
 import os
 
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 # 常量定义
 APP_USER_AGENT = 'MiFit/5.3.0 (iPhone; iOS 14.7.1; Scale/3.00)'
@@ -39,6 +41,12 @@ except ValueError:
     VARIATION_RATIO = 0.05
 today_str = datetime.datetime.now(BJ_TZ).strftime('%Y-%m-%d')
 
+# 设置全局requests会话与重试机制
+session = requests.Session()
+retries = Retry(total=5, backoff_factor=1, status_forcelist=[429,500,502,503,504], allowed_methods=["HEAD","GET","OPTIONS","POST"])
+adapter = HTTPAdapter(max_retries=retries)
+session.mount("https://", adapter)
+session.mount("http://", adapter)
 
 def parse_args():
     """解析命令行参数：用户和密码列表，用#分隔。"""
@@ -86,7 +94,7 @@ def login(user, password):
         'redirect_uri': 'https://s3-us-west-2.amazonaws.com/hm-registration/successsignin.html',
         'token': 'access'
     }
-    resp1 = requests.post(url1, data=data1, headers=headers, allow_redirects=False)
+    resp1 = session.post(url1, data=data1, headers=headers, allow_redirects=False)
     code = extract_access_code(resp1.headers.get('Location', ''))
     if not code:
         return None, None
@@ -111,7 +119,7 @@ def login(user, password):
             'os_version': '1.5.0',
             'source': 'com.xiaomi.hm.health'
         })
-    resp2 = requests.post(TOKEN_LOGIN_URL, data=data2, headers=headers).json()
+    resp2 = session.post(TOKEN_LOGIN_URL, data=data2, headers=headers).json()
     token_info = resp2.get('token_info', {})
     return token_info.get('login_token'), token_info.get('user_id')
 
@@ -120,7 +128,7 @@ def get_app_token(login_token):
     """根据 login_token 获取 apptoken。"""
     headers = {'User-Agent': APP_USER_AGENT}
     url = APP_TOKEN_URL_TEMPLATE.format(login_token=login_token)
-    resp = requests.get(url, headers=headers).json()
+    resp = session.get(url, headers=headers).json()
     return resp.get('token_info', {}).get('app_token')
 
 
@@ -141,7 +149,7 @@ def submit_steps(login_token, user_id, step):
     print(f"[DEBUG] 正在提交步数: user_id={user_id}, step={step}")
     print(f"[DEBUG] 提交URL: {url}")
     print(f"[DEBUG] Payload: {payload[:200]}... (截断)")
-    resp = requests.post(url, data=payload, headers=headers).json()
+    resp = session.post(url, data=payload, headers=headers).json()
     print(f"[DEBUG] 响应内容: {resp}")
     return resp.get('message', '')
 
